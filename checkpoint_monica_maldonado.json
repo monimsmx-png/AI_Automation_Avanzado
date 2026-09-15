@@ -1,0 +1,200 @@
+{
+  "name": "Expense Matching Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "ROL\nEres un agente especializado en identificar correspondencias entre movimientos bancarios y gastos registrados.\n\n\nOBJETIVO\nAnaliza el movimiento bancario recibido y determina si existe un gasto registrado en Airtable que corresponda con dicho movimiento.\n\n\nPROCESO\n1. Identifica del mensaje recibido:\n   - Fecha de la operación.\n   - Fecha de cargo.\n   - Descripción del movimiento.\n   - Monto.\n\n2. Utiliza la herramienta \"Buscar gastos en Airtable\" para consultar los gastos registrados.\n\n3. Compara el movimiento bancario con los gastos encontrados considerando principalmente:\n   - Fecha de cargo y Fecha del gasto.\n   - Monto e Importe.\n\n4. Analiza los registros encontrados y compara:\n   - Fecha.\n   - Importe.\n   - Descripción del movimiento y Establecimiento.\n\n5. La descripción del movimiento y el establecimiento no necesitan coincidir literalmente. Considera abreviaturas, nombres comerciales y texto adicional incluido en la descripción bancaria.\n\n6. Determina si existe correspondencia.\n\n\nREGLAS\n- No inventes gastos ni movimientos bancarios.\n- Utiliza únicamente la información proporcionada por el usuario y los resultados obtenidos mediante la herramienta de Airtable.\n- No marques una correspondencia como confirmada cuando la evidencia sea insuficiente.\n- Si existe una coincidencia clara, indica el ID del gasto correspondiente.\n- Si existen dudas, indica que requiere revisión.\n- Si no existe un gasto correspondiente, indica que NO.\n- Cuando indiques el ID del gasto, utiliza siempre el valor del campo \"ID\" dentro de fields del registro de Airtable.\n- No utilices el Record ID interno de Airtable que comienza con \"rec\".\n\nFORMATO DE RESPUESTA\nIndica:\n- Resultado: SÍ / NO / REVISAR\n- ID del gasto, cuando exista: [valor del campo ID del registro de Airtable, no el Record ID interno]\n- Establecimiento: [establecimiento, si existe]\n- Importe: [importe, si existe]\n- Explicación: [breve explicación de la decisión]",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -416,
+        -64
+      ],
+      "id": "19024fbb-177d-4c4b-bb97-890f564bce18",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.4-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-5.4-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -464,
+        144
+      ],
+      "id": "29100050-ceba-43d7-a2e9-a79d43f8fedf",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "aZ7jGBsvAEGkv6zC",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        192
+      ],
+      "id": "7ea72b8e-a4f3-41a1-bfe2-8d2ea666be44",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -656,
+        -64
+      ],
+      "id": "81be1e06-8435-40d4-84d1-a4d4d44db95f",
+      "name": "When chat message received",
+      "webhookId": "57b34801-b69a-4d84-8c9e-4fe20b389a26"
+    },
+    {
+      "parameters": {
+        "sendTo": "mms_masm@hotmail.com",
+        "subject": "Expense Matching Agent - Resultado de conciliación",
+        "message": "=Resultado del Expense Matching Agent:  {{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        -64
+      ],
+      "id": "6b29b0c7-f31a-4bfd-8a72-fa06513b1889",
+      "name": "Send a message",
+      "webhookId": "6fe662ab-7cea-4314-9d8c-0a49f31522fd",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NZ6ZjB3jNkxxbtlr",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appEQuzH5thdmC7sQ",
+          "mode": "list",
+          "cachedResultName": "Control Gastos",
+          "cachedResultUrl": "https://airtable.com/appEQuzH5thdmC7sQ"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbliwRuokaGfr4hph",
+          "mode": "list",
+          "cachedResultName": "Gastos",
+          "cachedResultUrl": "https://airtable.com/appEQuzH5thdmC7sQ/tbliwRuokaGfr4hph"
+        },
+        "filterByFormula": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Filter_By_Formula', `Busca candidatos en la tabla Gastos para el movimiento bancario recibido.\n\nLa fórmula debe filtrar principalmente por el importe y por la fecha.\n\nEl importe del movimiento bancario debe compararse con el campo {Importe}, permitiendo una pequeña tolerancia por diferencias decimales.\n\nPara la fecha, NO exijas que {Fecha} coincida únicamente con la fecha de cargo. Considera como candidatos tanto la fecha de operación como la fecha de cargo del movimiento bancario.\n\nCuando sea posible, utiliza una condición OR entre la fecha de operación y la fecha de cargo.\n\nLa descripción bancaria NO debe utilizarse como condición exacta del filtro, porque puede contener abreviaturas, nombres comerciales o texto adicional. La comparación entre la descripción bancaria y el campo Establecimiento será realizada posteriormente por el AI Agent.\n\nEl objetivo de esta herramienta es devolver candidatos relevantes para que el AI Agent determine posteriormente si existe una correspondencia.`, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        160
+      ],
+      "id": "ab2308eb-5e87-45c0-adc7-91faf5b94ca8",
+      "name": "Search records in Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "a7towW2QBsMINUTy",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records in Airtable": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "66346643-6e49-4aa2-aa24-5af4b65eea53",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2a86ae658d108e200f2852afe7490832d1c184b089f7ab98a70a337dc1815f1f"
+  },
+  "id": "g4WWZ5FmFmbpvvxM",
+  "tags": []
+}

@@ -1,2 +1,2 @@
-# AI_Automation_Avanzado
-Entregables del curso de AI Automation Avanzado
+# M1
+Entregable M1 del curso de AI Automation Avanzado

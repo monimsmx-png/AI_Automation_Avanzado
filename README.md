@@ -1,5 +1,7 @@
 # M1. Checkpoint de Configuración e Interfaces Agénticas
 Entregable M1 del curso de AI Automation Avanzado
+Autor: Mónica Maldonado S
+
 ## M1 — Expense Matching Agent
 ### Caso de uso
 Identificación de correspondencia entre movimientos bancarios y gastos registrados.
